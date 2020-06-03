@@ -4,20 +4,39 @@ import gql from "graphql-tag";
 
 import Link from "./Link";
 
-class LinkList extends React.Component {
-  render() {
-    const FEED_QUERY = gql`
-      {
-        feed {
-          links {
+export const FEED_QUERY = gql`
+  {
+    feed {
+      links {
+        id
+        description
+        url
+        createdAt
+        postedBy {
+          id
+          name
+        }
+        votes {
+          id
+          user {
             id
-            description
-            url
           }
         }
       }
-    `;
+    }
+  }
+`;
 
+class LinkList extends React.Component {
+  _updateCacheAfterVote = (store, createVote, linkId) => {
+    const data = store.readQuery({ query: FEED_QUERY });
+    const votedLink = data.feed.links.find((link) => link.id === linkId);
+    votedLink.votes = createVote.link.votes;
+
+    store.writeQuery({ query: FEED_QUERY, data });
+  };
+
+  render() {
     return (
       <Query query={FEED_QUERY}>
         {({ loading, error, data }) => {
@@ -28,8 +47,13 @@ class LinkList extends React.Component {
 
           return (
             <div>
-              {linksToRender.map((item) => (
-                <Link key={item.id} link={item} />
+              {linksToRender.map((item, index) => (
+                <Link
+                  key={item.id}
+                  link={item}
+                  index={index}
+                  updateStoreAfterVote={this._updateCacheAfterVote}
+                />
               ))}
             </div>
           );
